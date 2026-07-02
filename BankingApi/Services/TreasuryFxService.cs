@@ -14,7 +14,8 @@ namespace BankingApi.Services;
 /// </summary>
 public class TreasuryFxService : IFxService
 {
-    private const string RatesEndpoint = "/v1/accounting/od/rates_of_exchange";
+    // Relative to BaseAddress — must NOT start with '/' or HttpClient drops the base path.
+    private const string RatesEndpoint = "v1/accounting/od/rates_of_exchange";
     private const string Fields = "country_currency_desc,exchange_rate,record_date";
 
     private readonly HttpClient _httpClient;
@@ -33,21 +34,15 @@ public class TreasuryFxService : IFxService
         if (AreSame(fromCurrencyIso, toCurrencyIso))
             return new ExchangeRate(fromCurrencyIso, toCurrencyIso, 1m, date);
 
-        // 6-month rule: recordDate >= date.AddMonths(-6) AND recordDate <= date (calendar months, inclusive)
-        var fromResult = await FetchVsUsdAsync(fromCurrencyIso, onOrBefore: date);
-        if (fromResult == null) return null;
-
-        var toResult = await FetchVsUsdAsync(toCurrencyIso, onOrBefore: date);
-        if (toResult == null) return null;
-
-        // Treasury rates = units of foreign per 1 USD → from→to via pivot: toRate / fromRate
-        var directRate = toResult.Rate / fromResult.Rate;
+        // Treasury rates = foreign units per 1 USD. USD is the pivot — never fetched from Treasury.
+        var (directRate, recordDate) = await ResolveDirectRateAsync(fromCurrencyIso, toCurrencyIso, date);
+        if (directRate == null) return null;
 
         _logger.LogInformation(
             "Historical rate {From}→{To} on {Date}: {Rate}",
             fromCurrencyIso, toCurrencyIso, date, directRate);
 
-        return new ExchangeRate(fromCurrencyIso, toCurrencyIso, directRate, toResult.RecordDate);
+        return new ExchangeRate(fromCurrencyIso, toCurrencyIso, directRate.Value, recordDate!.Value);
     }
 
     /// <inheritdoc/>
@@ -57,19 +52,41 @@ public class TreasuryFxService : IFxService
         if (AreSame(fromCurrencyIso, toCurrencyIso))
             return new ExchangeRate(fromCurrencyIso, toCurrencyIso, 1m, DateOnly.FromDateTime(DateTime.UtcNow));
 
-        var fromResult = await FetchVsUsdAsync(fromCurrencyIso, onOrBefore: null);
-        if (fromResult == null) return null;
-
-        var toResult = await FetchVsUsdAsync(toCurrencyIso, onOrBefore: null);
-        if (toResult == null) return null;
-
-        var directRate = toResult.Rate / fromResult.Rate;
+        var (directRate, recordDate) = await ResolveDirectRateAsync(fromCurrencyIso, toCurrencyIso, onOrBefore: null);
+        if (directRate == null) return null;
 
         _logger.LogInformation(
             "Latest rate {From}→{To}: {Rate} (dated {Date})",
-            fromCurrencyIso, toCurrencyIso, directRate, toResult.RecordDate);
+            fromCurrencyIso, toCurrencyIso, directRate, recordDate);
 
-        return new ExchangeRate(fromCurrencyIso, toCurrencyIso, directRate, toResult.RecordDate);
+        return new ExchangeRate(fromCurrencyIso, toCurrencyIso, directRate.Value, recordDate!.Value);
+    }
+
+    /// <summary>
+    /// Resolves a direct from→to rate using USD as pivot. Only non-USD legs hit the Treasury API.
+    /// </summary>
+    private async Task<(decimal? Rate, DateOnly? RecordDate)> ResolveDirectRateAsync(
+        string fromCurrencyIso, string toCurrencyIso, DateOnly? onOrBefore)
+    {
+        if (IsUsd(fromCurrencyIso))
+        {
+            var toVsUsd = await FetchVsUsdAsync(toCurrencyIso, onOrBefore);
+            return toVsUsd == null ? (null, null) : (toVsUsd.Rate, toVsUsd.RecordDate);
+        }
+
+        if (IsUsd(toCurrencyIso))
+        {
+            var fromVsUsd = await FetchVsUsdAsync(fromCurrencyIso, onOrBefore);
+            return fromVsUsd == null ? (null, null) : (1m / fromVsUsd.Rate, fromVsUsd.RecordDate);
+        }
+
+        var fromVsUsdCross = await FetchVsUsdAsync(fromCurrencyIso, onOrBefore);
+        if (fromVsUsdCross == null) return (null, null);
+
+        var toVsUsdCross = await FetchVsUsdAsync(toCurrencyIso, onOrBefore);
+        if (toVsUsdCross == null) return (null, null);
+
+        return (toVsUsdCross.Rate / fromVsUsdCross.Rate, toVsUsdCross.RecordDate);
     }
 
     private async Task<RateResult?> FetchVsUsdAsync(string isoCode, DateOnly? onOrBefore)

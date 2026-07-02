@@ -28,8 +28,11 @@ builder.Services.AddScoped<ITransactionService, TransactionService>();
 // FX Service — Adapter over the US Treasury Reporting Rates of Exchange API
 builder.Services.AddHttpClient<IFxService, TreasuryFxService>(client =>
 {
-    client.BaseAddress = new Uri(builder.Configuration["TreasuryApi:BaseUrl"]
-        ?? "https://api.fiscaldata.treasury.gov/services/api/fiscal_service");
+    var baseUrl = builder.Configuration["TreasuryApi:BaseUrl"]
+        ?? "https://api.fiscaldata.treasury.gov/services/api/fiscal_service";
+    if (!baseUrl.EndsWith('/'))
+        baseUrl += '/';
+    client.BaseAddress = new Uri(baseUrl);
     client.Timeout = TimeSpan.FromSeconds(15);
     client.DefaultRequestHeaders.Add("Accept", "application/json");
 });
