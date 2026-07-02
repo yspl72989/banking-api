@@ -57,10 +57,16 @@ public class TransactionService : ITransactionService
     /// The FX service encapsulates Treasury API internals and USD pivot. Business logic here:
     /// convertedAmount = originalAmount * directRate.
     /// </summary>
-    public async Task<ConvertedTransactionResponse> GetConvertedTransactionAsync(Guid transactionId, string currency)
+    public async Task<ConvertedTransactionResponse> GetConvertedTransactionAsync(Guid cardId, Guid transactionId, string currency)
     {
+        var card = await _cardRepository.GetByIdAsync(cardId)
+            ?? throw new KeyNotFoundException($"Card {cardId} not found.");
+
         var transaction = await _transactionRepository.GetByIdAsync(transactionId)
             ?? throw new KeyNotFoundException($"Transaction {transactionId} not found.");
+
+        if (transaction.CardId != card.Id)
+            throw new KeyNotFoundException($"Transaction {transactionId} not found on card {cardId}.");
 
         if (string.Equals(transaction.CurrencyCode, currency, StringComparison.OrdinalIgnoreCase))
         {

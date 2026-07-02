@@ -55,7 +55,7 @@ public class TransactionsController : ControllerBase
     {
         try
         {
-            var transaction = await _transactionService.GetConvertedTransactionAsync(transactionId, currency);
+            var transaction = await _transactionService.GetConvertedTransactionAsync(cardId, transactionId, currency);
             return Ok(transaction);
         }
         catch (KeyNotFoundException ex)

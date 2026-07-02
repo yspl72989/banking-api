@@ -6,5 +6,5 @@ namespace BankingApi.Services.Contracts;
 public interface ITransactionService
 {
     Task<TransactionResponse> CreateTransactionAsync(Guid cardId, CreateTransactionRequest request);
-    Task<ConvertedTransactionResponse> GetConvertedTransactionAsync(Guid transactionId, string currency);
+    Task<ConvertedTransactionResponse> GetConvertedTransactionAsync(Guid cardId, Guid transactionId, string currency);
 }
