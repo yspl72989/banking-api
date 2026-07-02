@@ -64,6 +64,25 @@ public class CardsIntegrationTests : IClassFixture<BankingApiFactory>
     }
 
     [Fact]
+    public async Task PostTransaction_UnsupportedCurrency_Returns400()
+    {
+        var cardResp = await _client.PostAsJsonAsync("/api/cards",
+            new CreateCardRequest { CreditLimit = 2000m, CreditLimitCurrency = "USD" });
+        var card = await cardResp.Content.ReadFromJsonAsync<CardResponse>();
+
+        var response = await _client.PostAsJsonAsync($"/api/cards/{card!.Id}/transactions",
+            new CreateTransactionRequest
+            {
+                Description = "Coffee at Starbucks",
+                TransactionDate = new DateOnly(2026, 7, 1),
+                Amount = 5.50m,
+                CurrencyCode = "ABC"
+            });
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
     public async Task GetBalance_SameCurrency_ReturnsCorrectBalance()
     {
         var cardResp = await _client.PostAsJsonAsync("/api/cards",

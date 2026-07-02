@@ -44,6 +44,17 @@ public class TransactionServiceTests
     }
 
     [Fact]
+    public async Task CreateTransactionAsync_UnsupportedCurrency_ThrowsArgumentException()
+    {
+        var card = new Card { Id = Guid.NewGuid() };
+        _cardRepo.Setup(r => r.GetByIdAsync(card.Id)).ReturnsAsync(card);
+
+        await Assert.ThrowsAsync<ArgumentException>(() =>
+            _sut.CreateTransactionAsync(card.Id, new CreateTransactionRequest
+            { Description = "Coffee", TransactionDate = DateOnly.FromDateTime(DateTime.Today), Amount = 5.50m, CurrencyCode = "ABC" }));
+    }
+
+    [Fact]
     public async Task GetConvertedTransactionAsync_SameCurrency_ReturnsRateOneWithNoFxCall()
     {
         var card = new Card { Id = Guid.NewGuid() };

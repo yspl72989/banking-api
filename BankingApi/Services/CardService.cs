@@ -1,4 +1,5 @@
-﻿using BankingApi.Domain;
+﻿using BankingApi.Currency;
+using BankingApi.Domain;
 using BankingApi.Models.Requests;
 using BankingApi.Models.Responses;
 using BankingApi.Repositories.Contracts;
@@ -26,7 +27,7 @@ public class CardService : ICardService
         {
             Id = Guid.NewGuid(),
             CreditLimit = request.CreditLimit,
-            CreditLimitCurrency = request.CreditLimitCurrency,
+            CreditLimitCurrency = SupportedCurrencies.Validate(request.CreditLimitCurrency),
             CreatedAt = DateTime.UtcNow
         };
 
@@ -48,6 +49,8 @@ public class CardService : ICardService
     {
         var card = await _cardRepository.GetByIdWithTransactionsAsync(cardId)
             ?? throw new KeyNotFoundException($"Card {cardId} not found.");
+
+        currency = SupportedCurrencies.Validate(currency);
 
         var rateCache = new Dictionary<(string from, string to), decimal>(
             EqualityComparer<(string, string)>.Default);

@@ -1,4 +1,5 @@
-﻿using BankingApi.Domain;
+﻿using BankingApi.Currency;
+using BankingApi.Domain;
 using BankingApi.Models.Requests;
 using BankingApi.Models.Responses;
 using BankingApi.Repositories.Contracts;
@@ -31,6 +32,8 @@ public class TransactionService : ITransactionService
         var card = await _cardRepository.GetByIdAsync(cardId)
             ?? throw new KeyNotFoundException($"Card {cardId} not found.");
 
+        var currencyCode = SupportedCurrencies.Validate(request.CurrencyCode);
+
         var transaction = new Transaction
         {
             Id = Guid.NewGuid(),
@@ -38,7 +41,7 @@ public class TransactionService : ITransactionService
             Description = request.Description,
             TransactionDate = request.TransactionDate,
             Amount = request.Amount,
-            CurrencyCode = request.CurrencyCode,
+            CurrencyCode = currencyCode,
             CreatedAt = DateTime.UtcNow
         };
 
@@ -67,6 +70,8 @@ public class TransactionService : ITransactionService
 
         if (transaction.CardId != card.Id)
             throw new KeyNotFoundException($"Transaction {transactionId} not found on card {cardId}.");
+
+        currency = SupportedCurrencies.Validate(currency);
 
         if (string.Equals(transaction.CurrencyCode, currency, StringComparison.OrdinalIgnoreCase))
         {

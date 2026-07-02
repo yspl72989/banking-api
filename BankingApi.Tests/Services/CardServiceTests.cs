@@ -96,9 +96,18 @@ public class CardServiceTests
     {
         var card = new Card { Id = Guid.NewGuid(), CreditLimit = 1000m, CreditLimitCurrency = "USD", Transactions = new List<Transaction>() };
         _cardRepo.Setup(r => r.GetByIdWithTransactionsAsync(card.Id)).ReturnsAsync(card);
-        _fxService.Setup(f => f.GetLatestRateAsync("USD", "XXX")).ReturnsAsync((ExchangeRate?)null);
+        _fxService.Setup(f => f.GetLatestRateAsync("USD", "AUD")).ReturnsAsync((ExchangeRate?)null);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => _sut.GetBalanceAsync(card.Id, "XXX"));
+        await Assert.ThrowsAsync<InvalidOperationException>(() => _sut.GetBalanceAsync(card.Id, "AUD"));
+    }
+
+    [Fact]
+    public async Task GetBalanceAsync_UnsupportedCurrency_ThrowsArgumentException()
+    {
+        var card = new Card { Id = Guid.NewGuid(), CreditLimit = 1000m, CreditLimitCurrency = "USD", Transactions = new List<Transaction>() };
+        _cardRepo.Setup(r => r.GetByIdWithTransactionsAsync(card.Id)).ReturnsAsync(card);
+
+        await Assert.ThrowsAsync<ArgumentException>(() => _sut.GetBalanceAsync(card.Id, "ABC"));
     }
 
     [Fact]

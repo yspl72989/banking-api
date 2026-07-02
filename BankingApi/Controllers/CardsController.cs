@@ -58,5 +58,9 @@ public class CardsController : ControllerBase
             _logger.LogWarning(ex, "FX rate unavailable for balance request on card {CardId}", cardId);
             return UnprocessableEntity(new { message = ex.Message });
         }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
     }
 }

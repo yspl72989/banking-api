@@ -1,4 +1,5 @@
-﻿using BankingApi.Services.Contracts;
+﻿using BankingApi.Currency;
+using BankingApi.Services.Contracts;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -15,31 +16,6 @@ public class TreasuryFxService : IFxService
 {
     private const string RatesEndpoint = "/v1/accounting/od/rates_of_exchange";
     private const string Fields = "country_currency_desc,exchange_rate,record_date";
-
-    /// <summary>ISO 4217 → Treasury API country_currency_desc.</summary>
-    private static readonly Dictionary<string, string> IsoToTreasury =
-        new(StringComparer.OrdinalIgnoreCase)
-        {
-            ["AUD"] = "Australia-Dollar",
-            ["EUR"] = "Euro Zone-Euro",
-            ["GBP"] = "United Kingdom-Pound",
-            ["CAD"] = "Canada-Dollar",
-            ["JPY"] = "Japan-Yen",
-            ["NZD"] = "New Zealand-Dollar",
-            ["CHF"] = "Switzerland-Franc",
-            ["SGD"] = "Singapore-Dollar",
-            ["HKD"] = "Hong Kong-Dollar",
-            ["MXN"] = "Mexico-Peso",
-            ["CNY"] = "China-Renminbi",
-            ["KRW"] = "Korea-Won",
-            ["BRL"] = "Brazil-Real",
-            ["INR"] = "India-Rupee",
-            ["SEK"] = "Sweden-Krona",
-            ["NOK"] = "Norway-Krone",
-            ["DKK"] = "Denmark-Krone",
-            ["THB"] = "Thailand-Baht",
-            ["MYR"] = "Malaysia-Ringgit",
-        };
 
     private readonly HttpClient _httpClient;
     private readonly ILogger<TreasuryFxService> _logger;
@@ -101,9 +77,9 @@ public class TreasuryFxService : IFxService
         if (IsUsd(isoCode))
             return new RateResult(1m, onOrBefore ?? DateOnly.FromDateTime(DateTime.UtcNow));
 
-        if (!IsoToTreasury.TryGetValue(isoCode, out var treasuryName))
+        if (!SupportedCurrencies.TryGetTreasuryName(isoCode, out var treasuryName))
             throw new ArgumentException(
-                $"Currency '{isoCode}' is not supported. Use ISO 4217 codes (e.g. AUD, EUR, GBP). " +
+                $"Currency '{isoCode}' is not supported. Use ISO 4217 codes (e.g. AUD, EUR, GBP, USD). " +
                 "See README for the full list of supported currencies.");
 
         var filter = onOrBefore.HasValue ? $"record_date:lte:{onOrBefore.Value:yyyy-MM-dd}" : null;

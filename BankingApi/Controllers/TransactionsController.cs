@@ -38,6 +38,10 @@ public class TransactionsController : ControllerBase
         {
             return NotFound(new { message = ex.Message });
         }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
     }
 
     /// <summary>
@@ -66,6 +70,10 @@ public class TransactionsController : ControllerBase
         {
             _logger.LogWarning(ex, "FX rate unavailable for transaction {TransactionId}", transactionId);
             return UnprocessableEntity(new { message = ex.Message });
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { message = ex.Message });
         }
     }
 }
