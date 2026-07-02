@@ -51,6 +51,9 @@ public class CardService : ICardService
             ?? throw new KeyNotFoundException($"Card {cardId} not found.");
 
         currency = SupportedCurrencies.Validate(currency);
+        ValidateStoredCurrency(card.CreditLimitCurrency, "card credit limit");
+        foreach (var tx in card.Transactions)
+            ValidateStoredCurrency(tx.CurrencyCode, $"transaction {tx.Id}");
 
         var rateCache = new Dictionary<(string from, string to), decimal>(
             EqualityComparer<(string, string)>.Default);
@@ -92,6 +95,16 @@ public class CardService : ICardService
             TotalTransactions = totalTransactionsConverted,
             AvailableBalance = Math.Round(creditLimitConverted - totalTransactionsConverted, 2)
         };
+    }
+
+    private static void ValidateStoredCurrency(string isoCode, string context)
+    {
+        if (SupportedCurrencies.IsSupported(isoCode))
+            return;
+
+        throw new ArgumentException(
+            $"Cannot calculate balance: {context} has unsupported currency '{isoCode}'. " +
+            "This card has legacy invalid data — create a new card or remove the bad transaction.");
     }
 
     private static CardResponse MapToResponse(Card card) => new()
