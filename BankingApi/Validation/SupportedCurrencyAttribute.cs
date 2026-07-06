@@ -7,7 +7,7 @@ namespace BankingApi.Validation;
 public sealed class SupportedCurrencyAttribute : ValidationAttribute
 {
     public SupportedCurrencyAttribute()
-        : base("Currency '{0}' is not supported. Use ISO 4217 codes (e.g. AUD, EUR, GBP, USD).")
+        : base("Currency '{0}' is not supported. Use ISO 4217 codes (e.g. AUD, EUR, GBP, USD). See README for the full list.")
     {
     }
 

@@ -37,6 +37,20 @@ Currencies use **ISO 4217 codes** (`AUD`, `EUR`, `USD`). See Swagger for full re
 
 ---
 
+## Supported Currencies
+
+The API accepts standard ISO 4217 codes. Invalid codes (e.g. `ABC`) return **400 Bad Request**.
+
+| Code | Code | Code | Code |
+|---|---|---|---|
+| AUD | BRL | CAD | CHF |
+| CNY | DKK | EUR | GBP |
+| HKD | INR | JPY | KRW |
+| MXN | MYR | NOK | NZD |
+| SEK | SGD | THB | USD |
+
+---
+
 ## Key Assumptions
 
 - Transactions stored in their original currency; balance/conversion uses FX
